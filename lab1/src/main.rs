@@ -1,4 +1,4 @@
-use tch::{Tensor, Kind, vision};
+use tch::{Tensor, Kind, Device, vision};
 
 fn main() {
     // [channel, height, width] - 0,0 is top left, channels are rgb
@@ -27,10 +27,22 @@ fn main() {
     // unsharp masking.
 }
 
-fn apply_gaussian_filter(rgb: &Tensor, size: i64, std: f64) -> Tensor {
-    
+fn apply_gaussian_filter(rgb: &Tensor, size: i64, std: f32) -> Tensor {
+    let kernel = gaussian_kernel(rgb.device(), size, std);
+
 
     Tensor::new()
+}
+
+fn gaussian_kernel(device: Device, size: i64, std: f32) {
+    // formula: https://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm
+    let one_d: Tensor = Tensor::arange(size, (Kind::Float, device)) - (size / 2);
+    let x = one_d.view([size, 1]);
+    let y = one_d.view([1, size]);
+
+    let filter = (-(&x * &x + &y * &y) / Tensor::from(2.0f32 * std * std)).exp() / Tensor::from(2.0 * std::f32::consts::PI * std * std);
+    let filter = &filter / filter.sum(Kind::Float);
+    filter.print();
 }
 
 fn normalize_brightness_exp(hsv: &Tensor) -> Tensor {
