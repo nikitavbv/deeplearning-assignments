@@ -23,23 +23,56 @@ fn main() {
     vision::image::save(&image_gaussian_filter, "./report/images/gaussian.png").unwrap();
 
     // box-фільтр
-    
-    // unsharp masking.
+    let image_box_filter = apply_box_filter(&rgb, 5, 0.04);
+    vision::image::save(&image_box_filter, "./report/images/box.png").unwrap();
+
+    // unsharp masking
+    let image_unsharp_masking = apply_unsharp_masking(&apply_gaussian_filter(&rgb, 5, 10.0));
+    vision::image::save(&image_unsharp_masking, "./report/images/unsharp.png").unwrap();
+
+    // Провести детекцію границь оператором Собеля.
+    let image_edges = apply_edge_detection(&apply_gaussian_filter(&rgb, 5, 10.0));
+    vision::image::save(&image_edges, "./report/images/edges.png").unwrap();
+}
+
+fn apply_edge_detection(rgb: &Tensor) -> Tensor {
+    let kernel = Tensor::from_slice(&[
+         0.0, -1.0,  0.0,
+        -1.0,  4.0, -1.0,
+         0.0, -1.0,  0.0,
+    ]).to_kind(Kind::Float).reshape([3, 3]);
+
+    apply_kernel(rgb, &kernel, 3)
+}
+
+fn apply_unsharp_masking(rgb: &Tensor) -> Tensor {
+    let a = Tensor::from_slice(&[
+        0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0,
+    ]).to_kind(Kind::Float).reshape([3, 3]);
+
+    let b = Tensor::from_slice(&[
+        0.0, -1.0, 0.0,
+        -1.0, 4.0, -1.0,
+        0.0, -1.0, 0.0,
+    ]).to_kind(Kind::Float).reshape([3, 3]);
+
+    let kernel: Tensor = a + 2 * b;
+
+    apply_kernel(rgb, &kernel, 3)
+}
+
+fn apply_box_filter(rgb: &Tensor, size: i64, value: f32) -> Tensor {
+    apply_kernel(rgb, &box_kernel(size, value), size)
+}
+
+fn box_kernel(size: i64, value: f32) -> Tensor {
+    Tensor::from(value).repeat([size, size])
 }
 
 fn apply_gaussian_filter(rgb: &Tensor, size: i64, std: f32) -> Tensor {
-    let channels = 3;
-    let vs = nn::VarStore::new(rgb.device());
-    let mut conv = nn::conv2d(vs.root(), channels, channels, 5, nn::ConvConfig {
-        groups: channels,
-        ..Default::default()
-    });
-    
-    conv.ws = gaussian_kernel(rgb.device(), size, std)
-        .reshape([1, 1, 5, 5])
-        .repeat([3, 1, 1, 1]);
-
-    no_grad(|| conv.forward(&rgb.to_kind(Kind::Float)))
+    apply_kernel(rgb, &gaussian_kernel(rgb.device(), size, std), size)
 }
 
 fn gaussian_kernel(device: Device, size: i64, std: f32) -> Tensor {
@@ -50,6 +83,21 @@ fn gaussian_kernel(device: Device, size: i64, std: f32) -> Tensor {
 
     let filter = (-(&x * &x + &y * &y) / Tensor::from(2.0f32 * std * std)).exp() / Tensor::from(2.0 * std::f32::consts::PI * std * std);
     &filter / filter.sum(Kind::Float)
+}
+
+fn apply_kernel(rgb: &Tensor, kernel: &Tensor, size: i64) -> Tensor {
+    let channels = 3;
+    let vs = nn::VarStore::new(rgb.device());
+    let mut conv = nn::conv2d(vs.root(), channels, channels, size, nn::ConvConfig {
+        groups: channels,
+        ..Default::default()
+    });
+    
+    conv.ws = kernel
+        .reshape([1, 1, size, size])
+        .repeat([channels, 1, 1, 1]);
+
+    no_grad(|| conv.forward(&rgb.to_kind(Kind::Float)))
 }
 
 fn normalize_brightness_exp(hsv: &Tensor) -> Tensor {
