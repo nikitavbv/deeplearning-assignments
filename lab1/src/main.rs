@@ -1,4 +1,4 @@
-use tch::{Tensor, vision};
+use tch::{Tensor, Kind, vision};
 
 fn main() {
     // [channel, height, width] - 0,0 is top left, channels are rgb
@@ -8,7 +8,54 @@ fn main() {
     // (для цього нормалізуйте V канал). Не забудьте, що колірний простір, у якому cv2.imread 
     // віддає зображення це BGR.
     let hsv = rgb_to_hsv(&rgb);
+    
+    let hsv_linear = normalize_brightness_linearly(&hsv);
+    let hsv_exp = normalize_brightness_exp(&hsv);
+    
+    let rgb_linear = hsv_to_rgb(&hsv_linear);
+    let rgb_exp = hsv_to_rgb(&hsv_exp);
+    
+    vision::image::save(&rgb_linear, "./report/images/brightness-linear.png").unwrap();
+    vision::image::save(&rgb_exp, "./report/images/brightness-exp.png").unwrap();
 
+    // Застосувати до зображення фільтр Гауса
+    let image_gaussian_filter = apply_gaussian_filter(&rgb, 5, 0.5865);
+    vision::image::save(&image_gaussian_filter, "./report/images/gaussian.png").unwrap();
+
+    // box-фільтр
+    
+    // unsharp masking.
+}
+
+fn apply_gaussian_filter(rgb: &Tensor, size: i64, std: f64) -> Tensor {
+    
+
+    Tensor::new()
+}
+
+fn normalize_brightness_exp(hsv: &Tensor) -> Tensor {
+    let h = hsv.select(0, 0);
+    let s = hsv.select(0, 1);
+    let v = hsv.select(0, 2);
+
+    let v = (v.exp() * 0.4).clamp_max(1.0);
+
+    Tensor::stack(&[&h, &s, &v], 0)
+}
+
+fn normalize_brightness_linearly(hsv: &Tensor) -> Tensor {
+    let h = hsv.select(0, 0);
+    let s = hsv.select(0, 1);
+    let v = hsv.select(0, 2);
+    
+    let v_min = f64::try_from(v.min()).unwrap();
+    let v_max = f64::try_from(v.max()).unwrap();
+
+    let v_delta = &v_max - &v_min;
+
+    let v = (v - v_min) / v_delta;
+    
+    Tensor::stack(&[&h, &s, &v], 0)
 }
 
 fn rgb_to_hsv(rgb: &Tensor) -> Tensor {
@@ -109,6 +156,14 @@ mod tests {
         let rgb = hsv_to_rgb(&hsv);
         let expected = Tensor::from_slice(&[20.0, 40.0, 60.0]).reshape([3, 1, 1]);
         assert_tensors_close(&expected, &rgb);
+    }
+
+    #[test]
+    fn test_rgb_hsv_rgb_large() {
+        let source = vision::image::load("./demo.jpg").unwrap().to_kind(Kind::Float);
+        let hsv = rgb_to_hsv(&source);
+        let rgb = hsv_to_rgb(&hsv);
+        assert_tensors_close(&source, &rgb);
     }
 
     fn assert_tensors_close(expected: &Tensor, actual: &Tensor) {
