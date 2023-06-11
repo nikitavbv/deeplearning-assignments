@@ -10,7 +10,7 @@ Filters where applied to all channels of the image.
 
 ![linear brightness adjustment](./report/images/brightness-linear.png)
 
-The image has not changed at all because $H_{min}$ = 0.0$ and $H_{max} = 1.0$.
+The image has not changed at all because $H_{min} = 0.0$ and $H_{max} = 1.0$.
 
 ## exponetial brightness adjustment
 
