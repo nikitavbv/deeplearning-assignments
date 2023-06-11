@@ -1,4 +1,4 @@
-use tch::{Tensor, Kind, Device, vision};
+use tch::{Tensor, Kind, Device, vision, nn::{self, Module}, no_grad};
 
 fn main() {
     // [channel, height, width] - 0,0 is top left, channels are rgb
@@ -19,7 +19,7 @@ fn main() {
     vision::image::save(&rgb_exp, "./report/images/brightness-exp.png").unwrap();
 
     // Застосувати до зображення фільтр Гауса
-    let image_gaussian_filter = apply_gaussian_filter(&rgb, 5, 0.5865);
+    let image_gaussian_filter = apply_gaussian_filter(&rgb, 5, 3.0);
     vision::image::save(&image_gaussian_filter, "./report/images/gaussian.png").unwrap();
 
     // box-фільтр
@@ -28,21 +28,28 @@ fn main() {
 }
 
 fn apply_gaussian_filter(rgb: &Tensor, size: i64, std: f32) -> Tensor {
-    let kernel = gaussian_kernel(rgb.device(), size, std);
+    let channels = 3;
+    let vs = nn::VarStore::new(rgb.device());
+    let mut conv = nn::conv2d(vs.root(), channels, channels, 5, nn::ConvConfig {
+        groups: channels,
+        ..Default::default()
+    });
+    
+    conv.ws = gaussian_kernel(rgb.device(), size, std)
+        .reshape([1, 1, 5, 5])
+        .repeat([3, 1, 1, 1]);
 
-
-    Tensor::new()
+    no_grad(|| conv.forward(&rgb.to_kind(Kind::Float)))
 }
 
-fn gaussian_kernel(device: Device, size: i64, std: f32) {
+fn gaussian_kernel(device: Device, size: i64, std: f32) -> Tensor {
     // formula: https://homepages.inf.ed.ac.uk/rbf/HIPR2/gsmooth.htm
     let one_d: Tensor = Tensor::arange(size, (Kind::Float, device)) - (size / 2);
     let x = one_d.view([size, 1]);
     let y = one_d.view([1, size]);
 
     let filter = (-(&x * &x + &y * &y) / Tensor::from(2.0f32 * std * std)).exp() / Tensor::from(2.0 * std::f32::consts::PI * std * std);
-    let filter = &filter / filter.sum(Kind::Float);
-    filter.print();
+    &filter / filter.sum(Kind::Float)
 }
 
 fn normalize_brightness_exp(hsv: &Tensor) -> Tensor {
