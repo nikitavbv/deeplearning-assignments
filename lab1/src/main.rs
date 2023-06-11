@@ -43,7 +43,7 @@ fn hsv_to_rgb(hsv: &Tensor) -> Tensor {
     let v = hsv.select(0, 2);
 
     let c = &v * s;
-    let x = &c * (1 / ((&h / 60).remainder(2) - 1).abs());
+    let x = &c * (1.0 - ((&h / 60).remainder(2) - 1).abs());
     let m = v - &c;
 
     let r = Tensor::zeros_like(&h);
@@ -74,7 +74,7 @@ fn hsv_to_rgb(hsv: &Tensor) -> Tensor {
     let r = r.where_self(&condition, &c);
     let b = b.where_self(&condition, &x);
 
-    Tensor::stack(&[&r + &m, &g + &m, &b + &m], 1).squeeze_dim(0) * 255.0
+    Tensor::stack(&[&r + &m, &g + &m, &b + &m], 0) * 255.0
 }
 
 #[allow(dead_code)]
