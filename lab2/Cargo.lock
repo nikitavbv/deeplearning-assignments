@@ -565,6 +565,7 @@ name = "lab2"
 version = "0.1.0"
 dependencies = [
  "prometheus",
+ "rand",
  "reqwest",
  "serde",
  "tch",
