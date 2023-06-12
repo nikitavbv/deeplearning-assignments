@@ -5,6 +5,7 @@ use {
         metrics::{Metrics, EpochMetrics},
         data::{prepare_datasets, Dataset},
         simple::SimpleModel,
+        inception_resnet_v2::InceptionResnetV2,
     },
 };
 
@@ -31,7 +32,7 @@ fn main() {
 
 fn train(device: Device, config: Config, mut metrics: Metrics) {
     let total_classes = 2;
-    let net = SimpleModel::new(device, total_classes);
+    let net = InceptionResnetV2::new(device, total_classes);
 
     let mut opt = Adam::default().build(&net.var_store(), 1e-4).unwrap();
     let mut epoch = 0;
