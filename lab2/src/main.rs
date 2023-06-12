@@ -1,5 +1,5 @@
 use {
-    tch::{Device, Tensor, Reduction, Kind, no_grad, nn::{Adam, OptimizerConfig, ModuleT}},
+    tch::{Device, Tensor, Reduction, Kind, no_grad, nn::{Adam, OptimizerConfig, ModuleT}, vision},
     crate::{
         config::Config,
         metrics::{Metrics, EpochMetrics},
@@ -46,6 +46,8 @@ fn train(device: Device, config: Config, mut metrics: Metrics) {
         while train.has_more_chunks() {
             let mut chunk = train.next_chunk();
             for (xs, ys) in chunk.to_device(device) {
+                // let xs = vision::dataset::augmentation(&xs, true, 4, 8);
+
                 opt.zero_grad();
 
                 train_metrics.total_samples += xs.size()[0];
