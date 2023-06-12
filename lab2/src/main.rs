@@ -10,6 +10,7 @@ use {
 
 pub mod config;
 pub mod data;
+pub mod inception_resnet_v2;
 pub mod metrics;
 pub mod simple;
 
