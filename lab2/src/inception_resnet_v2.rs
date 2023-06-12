@@ -113,7 +113,7 @@ impl ModuleT for InceptionResnetV2 {
             .apply_t(&self.inception_block_c, train)
             .apply_t(&self.inception_block_c_last, train)
             .apply_t(&self.conv1, train)
-            .avg_pool2d([8, 8], [0, 0], [0, 0], false, false, None);
+            .avg_pool2d([5, 5], [5, 5], [0, 0], false, false, None);
         
         x.view([x.size()[0], -1]).apply(&self.linear1)
     }
@@ -368,7 +368,7 @@ impl TransitionC {
                 .add(ConvLayer::new(path, 256, 384, 3, 2, 0)),
             branch1: seq_t()
                 .add(ConvLayer::new(path, 1088, 256, 1, 1, 0))
-                .add(ConvLayer::new(path, 256, 258, 3, 2, 0)),
+                .add(ConvLayer::new(path, 256, 288, 3, 2, 0)),
             branch2: seq_t()
                 .add(ConvLayer::new(path, 1088, 256, 1, 1, 0))
                 .add(ConvLayer::new(path, 256, 288, 3, 1, 1))
