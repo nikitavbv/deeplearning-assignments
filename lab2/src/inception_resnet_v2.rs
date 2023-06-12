@@ -13,6 +13,7 @@ use tch::{
         BatchNormConfig,
         SequentialT,
         seq_t,
+        Linear,
     },
 };
 
@@ -24,6 +25,15 @@ pub struct InceptionResnetV2 {
     vs: VarStore,
 
     stem: Stem,
+    transition_a: TransitionA,
+    inception_block_a: SequentialT,
+    transition_b: TransitionB,
+    inception_block_b: SequentialT,
+    transition_c: TransitionC,
+    inception_block_c: SequentialT,
+    inception_block_c_last: InceptionBlockC,
+    conv1: ConvLayer,
+    linear1: Linear,
 }
 
 impl InceptionResnetV2 {
@@ -32,9 +42,57 @@ impl InceptionResnetV2 {
         let path = vs.root();
 
         Self {
-            vs,
+            stem: Stem::new(&path),
+            transition_a: TransitionA::new(&path),
+            inception_block_a: seq_t()
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17))
+                .add(InceptionBlockA::new(&path, 0.17)),
+            transition_b: TransitionB::new(&path),
+            inception_block_b: seq_t()
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10))
+                .add(InceptionBlockB::new(&path, 0.10)),
+            transition_c: TransitionC::new(&path),
+            inception_block_c: seq_t()
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true))
+                .add(InceptionBlockC::new(&path, 0.20, true)),
+            inception_block_c_last: InceptionBlockC::new(&path, 1.0, false),
+            conv1: ConvLayer::new(&path, 2080, 1536, 1, 1, 0),
+            linear1: nn::linear(&path, 1536, total_classes, Default::default()),
 
-            stem: unimplemented!(),
+            vs
         }
     }
 
@@ -45,7 +103,19 @@ impl InceptionResnetV2 {
 
 impl ModuleT for InceptionResnetV2 {
     fn forward_t(&self, xs: &Tensor, train: bool) -> Tensor {
-        unimplemented!()
+        let x = xs
+            .apply_t(&self.stem, train)
+            .apply_t(&self.transition_a, train)
+            .apply_t(&self.inception_block_a, train)
+            .apply_t(&self.transition_b, train)
+            .apply_t(&self.inception_block_b, train)
+            .apply_t(&self.transition_c, train)
+            .apply_t(&self.inception_block_c, train)
+            .apply_t(&self.inception_block_c_last, train)
+            .apply_t(&self.conv1, train)
+            .avg_pool2d([8, 8], [0, 0], [0, 0], false, false, None);
+        
+        x.view([x.size()[0], -1]).apply(&self.linear1)
     }
 }
 
@@ -314,5 +384,50 @@ impl ModuleT for TransitionC {
         let x2 = xs.apply_t(&self.branch2, train);
         let x3 = xs.max_pool2d([3, 3], [2, 2], [0, 0], [1, 1], false);
         Tensor::cat(&[x0, x1, x2, x3], 1)
+    }
+}
+
+#[derive(Debug)]
+struct InceptionBlockC {
+    scale: f32,
+    apply_relu: bool,
+
+    branch0: ConvLayer,
+    branch1: SequentialT,
+
+    conv1: Conv2D,
+}
+
+impl InceptionBlockC {
+    pub fn new(path: &Path<'_>, scale: f32, apply_relu: bool) -> Self {
+        Self {
+            scale,
+            apply_relu,
+
+            branch0: ConvLayer::new(path, 2080, 192, 1, 1, 0),
+            branch1: seq_t()
+                .add(ConvLayer::new(path, 2080, 192, 1, 1, 0))
+                .add(ConvLayer::new_2d(path, 192, 224, (1, 3), (1, 1), (0, 1)))
+                .add(ConvLayer::new_2d(path, 224, 256, (3, 1), (1, 1), (1, 0))),
+            
+            conv1: nn::conv2d(path, 448, 2080, 1, ConvConfig {
+                stride: 1,
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+impl ModuleT for InceptionBlockC {
+    fn forward_t(&self, xs: &Tensor, train: bool) -> Tensor {
+        let x0 = xs.apply_t(&self.branch0, train);
+        let x1 = xs.apply_t(&self.branch1, train);
+        let out = Tensor::cat(&[x0, x1], 1).apply(&self.conv1);
+        let out = self.scale * out + xs;
+        if self.apply_relu {
+            out.relu()
+        } else {
+            out
+        }
     }
 }
