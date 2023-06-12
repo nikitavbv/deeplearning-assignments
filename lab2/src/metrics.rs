@@ -75,7 +75,7 @@ impl Metrics {
 
     pub fn push_to_stdout(&self) {
         println!("train loss = {}, acc = {}", self.loss.get_metric_with_label_values(&["train"]).unwrap().get(), self.accuracy.get_metric_with_label_values(&["train"]).unwrap().get());
-        println!("test loss = {}, acc = {}", self.loss.get_metric_with_label_values(&["test"]).unwrap().get(), self.accuracy.get_metric_with_label_values(&["test"]).unwrap().get());
+        println!("test loss = {}, acc = {}", self.loss.get_metric_with_label_values(&["test"]).unwrap().get(), self.test_accuracy());
     }
 
     pub fn push_to_remote(&mut self) {
@@ -99,6 +99,10 @@ impl Metrics {
         }
 
         self.pushed_at = Some(now);
+    }
+
+    pub fn test_accuracy(&self) -> f64 {
+        self.accuracy.get_metric_with_label_values(&["test"]).unwrap().get()
     }
 }
 

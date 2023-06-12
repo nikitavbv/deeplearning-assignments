@@ -25,15 +25,17 @@ fn main() {
     println!("using device: {:?}", device);
 
     // prepare_datasets();
-    train(device, metrics);
+    train(device, config, metrics);
 }
 
-fn train(device: Device, mut metrics: Metrics) {
+fn train(device: Device, config: Config, mut metrics: Metrics) {
     let total_classes = 2;
     let net = SimpleModel::new(device, total_classes);
 
     let mut opt = Adam::default().build(&net.var_store(), 1e-4).unwrap();
     let mut epoch = 0;
+
+    let mut best_test_accuracy = 0.0;
 
     loop {
         println!("running epoch: {}", epoch);
@@ -78,6 +80,13 @@ fn train(device: Device, mut metrics: Metrics) {
         metrics.set_test_metrics(&test_metrics);
 
         metrics.report();
+        
+        let acc = metrics.test_accuracy();
+        if acc > best_test_accuracy {
+            println!("best epoch so far, saving weights");
+            net.var_store().save(format!("weights/{}.pt", &config.run_id)).unwrap();
+            best_test_accuracy = acc;
+        }
 
         epoch += 1;
     }
