@@ -1,7 +1,7 @@
 use {
     std::{fs::{self, read_dir, read_to_string}, collections::HashMap},
     rand::prelude::*,
-    tch::{Tensor, data::Iter2, vision::imagenet::load_image_and_resize224},
+    tch::{Tensor, Kind, data::Iter2, vision::imagenet::load_image_and_resize224},
 };
 
 // Dataset downloaded from https://huggingface.co/datasets/imagenet-1k/tree/main/data
@@ -44,7 +44,7 @@ fn prepare_dataset(classes_to_use: &HashMap<String, usize>, dataset: &str) {
 
             let mut label = vec![0.0; total_classes];
             label[*class_index] =  1.0;
-            let label = Tensor::from_slice(&label).unsqueeze(0);
+            let label = Tensor::from_slice(&label).to_kind(Kind::Float).unsqueeze(0);
             labels.push(label);
             
             total += 1;
