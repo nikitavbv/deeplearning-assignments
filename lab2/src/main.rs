@@ -31,7 +31,7 @@ fn main() {
 }
 
 fn train(device: Device, config: Config, mut metrics: Metrics) {
-    let total_classes = 2;
+    let total_classes = 10;
     let net = InceptionResnetV2::new(device, total_classes);
 
     let mut opt = Adam::default().build(&net.var_store(), 1e-4).unwrap();
