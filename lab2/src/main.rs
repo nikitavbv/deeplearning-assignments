@@ -27,11 +27,11 @@ fn main() {
     println!("using device: {:?}", device);
 
     prepare_datasets();
-    // train(device, config, metrics);
+    train(device, config, metrics);
 }
 
 fn train(device: Device, config: Config, mut metrics: Metrics) {
-    let total_classes = 10;
+    let total_classes = 100;
     let net = InceptionResnetV2::new(device, total_classes);
 
     let mut opt = Adam::default().build(&net.var_store(), 1e-4).unwrap();
