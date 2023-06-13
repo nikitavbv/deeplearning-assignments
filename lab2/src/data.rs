@@ -10,6 +10,14 @@ pub fn prepare_datasets() {
     println!("preparing datasets");
 
     let classes_to_use: HashMap<String, usize> = vec![
+        "n01440764", //"tench, Tinca tinca",
+        "n01443537", //"goldfish, Carassius auratus",
+        "n01484850", //"great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias",
+        "n01491361", //"tiger shark, Galeocerdo cuvieri",
+        "n01494475", //"hammerhead, hammerhead shark",
+        "n01496331", //"electric ray, crampfish, numbfish, torpedo",
+        "n01498041", //"stingray",
+        "n01514668", //"cock",
         "n07873807", // pizza
         "n07718472", // cucumber
     ].iter().enumerate().map(|v| (v.1.to_string(), v.0)).collect();
