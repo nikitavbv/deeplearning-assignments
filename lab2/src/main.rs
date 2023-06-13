@@ -55,8 +55,7 @@ fn train(device: Device, config: Config, mut metrics: Metrics) {
                 train_metrics.total_samples += xs.size()[0];
 
                 let outputs = net.forward_t(&xs, true);
-                let loss = outputs
-                    .cross_entropy_loss::<Tensor>(&ys, None, Reduction::Sum, -100, 0.0);
+                let loss = outputs.cross_entropy_for_logits(&ys.argmax(1, false));
                 train_metrics.total_loss += loss.double_value(&[]);
                 train_metrics.total_correct += count_correct(&outputs, &ys);
 
@@ -74,8 +73,7 @@ fn train(device: Device, config: Config, mut metrics: Metrics) {
                     test_metrics.total_samples += xs.size()[0];
 
                     let outputs = net.forward_t(&xs, false);
-                    let loss = outputs
-                        .cross_entropy_loss::<Tensor>(&ys, None, Reduction::Sum, -100, 0.0);
+                    let loss = outputs.cross_entropy_for_logits(&ys.argmax(1, false));
                     test_metrics.total_loss += loss.double_value(&[]);
                     test_metrics.total_correct += count_correct(&outputs, &ys);
                 }
