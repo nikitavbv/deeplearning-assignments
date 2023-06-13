@@ -48,7 +48,7 @@ fn train(device: Device, config: Config, mut metrics: Metrics) {
         while train.has_more_chunks() {
             let mut chunk = train.next_chunk();
             for (xs, ys) in chunk.to_device(device) {
-                // let xs = vision::dataset::augmentation(&xs, true, 4, 8);
+                let xs = vision::dataset::augmentation(&xs, true, 4, 8);
 
                 opt.zero_grad();
 
