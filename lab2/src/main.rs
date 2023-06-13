@@ -26,8 +26,8 @@ fn main() {
 
     println!("using device: {:?}", device);
 
-    // prepare_datasets();
-    train(device, config, metrics);
+    prepare_datasets();
+    // train(device, config, metrics);
 }
 
 fn train(device: Device, config: Config, mut metrics: Metrics) {
