@@ -10,6 +10,7 @@ fn main() {
 
     let device = Device::cuda_if_available();
 
+    println!("loading dataset...");
     let (xs, ys) = load_dataset();
     println!("xs: {:?}", xs);
     println!("ys: {:?}", ys);
@@ -17,10 +18,12 @@ fn main() {
 
 fn load_dataset() -> (Tensor, Tensor) {
     if Path::new("./dataset/xs.pt").exists() {
-        return (Tensor::load("./dataset/xs.pt").unwrap(), Tensor::load("./datasest/ys.pt").unwrap());
+        return (Tensor::load("./dataset/xs.pt").unwrap(), Tensor::load("./dataset/ys.pt").unwrap());
     }
 
+    println!("generating dataset");
     let (xs, ys) = create_dataset();
+    println!("saving dataset");
     xs.save("./dataset/xs.pt").unwrap();
     ys.save("./dataset/ys.pt").unwrap();
 
@@ -58,8 +61,11 @@ fn create_dataset() -> (Tensor, Tensor) {
 
         data.push(text_encoded);
         labels.push(Tensor::from_slice(&[label]));
+
+        println!("generating dataset: {}", data.len());
     }
 
+    println!("padding tensors");
     let data_tensors: Vec<Tensor> = data.into_iter()
         .map(|v| {
             let data = Tensor::from_slice(&v);
@@ -68,5 +74,6 @@ fn create_dataset() -> (Tensor, Tensor) {
         })
         .collect();
 
+    println!("cat tensors");
     (Tensor::cat(&data_tensors, 0), Tensor::cat(&labels, 0))
 }

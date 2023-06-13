@@ -172,7 +172,7 @@ fn save_chunk(dataset: &str, chunk_index: i64, images: &[Tensor], labels: &[Tens
     let images = Tensor::cat(&images, 0);
     let labels = Tensor::cat(&labels, 0);
 
-    let mut buf = Vec::new();
+    /*let mut buf = Vec::new();
     images.save_to_stream(&mut buf).unwrap();
 
     let mut encoder = zstd::stream::Encoder::new(
@@ -180,8 +180,9 @@ fn save_chunk(dataset: &str, chunk_index: i64, images: &[Tensor], labels: &[Tens
         4
     ).unwrap();
     encoder.write_all(&buf).unwrap();
-    encoder.finish().unwrap();
+    encoder.finish().unwrap();*/
 
+    images.save(format!("./imagenet/dataset/{}/images_{}.pt", dataset, chunk_index)).unwrap();
     labels.save(format!("./imagenet/dataset/{}/labels_{}.pt", dataset, chunk_index)).unwrap();
 }
 
@@ -211,12 +212,13 @@ impl Dataset {
     pub fn next_chunk(&mut self) -> Iter2 {
         let chunk_index = self.chunks.pop().unwrap();
 
-        let mut xs_data = Vec::new();
+        /*let mut xs_data = Vec::new();
         let mut decoder = zstd::stream::Decoder::new(File::open(format!("./imagenet/dataset/{}/images_{}.pt", &self.name, chunk_index)).unwrap()).unwrap();
         decoder.read_to_end(&mut xs_data).unwrap();
 
-        let xs = Tensor::load_from_stream(io::Cursor::new(xs_data)).unwrap();
+        let xs = Tensor::load_from_stream(io::Cursor::new(xs_data)).unwrap();*/
 
+        let xs = Tensor::load(format!("./imagenet/dataset/{}/images_{}.pt", &self.name, chunk_index)).unwrap();
         let ys = Tensor::load(format!("./imagenet/dataset/{}/labels_{}.pt", &self.name, chunk_index)).unwrap();
 
         let mut iter = Iter2::new(&xs, &ys, self.batch_size);
