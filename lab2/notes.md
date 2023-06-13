@@ -11,6 +11,6 @@ test loss = 0.16681936264038086, acc = 0.97
 ```
 
 current status: training 10 classes, whole dataset.
-base: test accuracy = 65%.
-with augmentation: checking (1).
-more classes (100): checking (2).
+base(test accuracy): 65%.
+with augmentation: 70.4%
+more classes (100, with augmentation): checking (1).

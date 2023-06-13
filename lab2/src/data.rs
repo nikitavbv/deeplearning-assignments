@@ -151,6 +151,7 @@ fn prepare_dataset(classes_to_use: &HashMap<String, usize>, dataset: &str) {
         
             if images.len() > max_chunk_size {
                 save_chunk(dataset, chunk_index, &images, &labels);
+                println!("saved chunk: {}", chunk_index);
                 chunk_index += 1;
 
                 images.clear();
