@@ -31,10 +31,10 @@ fn main() {
 }
 
 fn train(device: Device, config: Config, mut metrics: Metrics) {
-    let total_classes = 100;
+    let total_classes = 102;
     let net = InceptionResnetV2::new(device, total_classes);
 
-    let mut opt = Adam::default().build(&net.var_store(), 1e-4).unwrap();
+    let mut opt = Adam::default().build(&net.var_store(), 1e-3).unwrap();
     let mut epoch = 0;
 
     let mut best_test_accuracy = 0.0;
@@ -48,7 +48,7 @@ fn train(device: Device, config: Config, mut metrics: Metrics) {
         while train.has_more_chunks() {
             let mut chunk = train.next_chunk();
             for (xs, ys) in chunk.to_device(device) {
-                let xs = vision::dataset::augmentation(&xs, true, 4, 8);
+                let xs = vision::dataset::augmentation(&xs, true, 40, 80);
 
                 opt.zero_grad();
 
