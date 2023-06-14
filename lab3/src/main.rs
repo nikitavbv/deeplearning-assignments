@@ -1,6 +1,6 @@
 use {
     std::{fs, path::Path, collections::HashMap},
-    tch::{Device, Tensor},
+    tch::{Device, Tensor, nn::{self, VarStore, OptimizerConfig, RNN, Module}, data::Iter2},
 };
 
 pub mod model;
@@ -14,6 +14,35 @@ fn main() {
     let (xs, ys) = load_dataset();
     println!("xs: {:?}", xs);
     println!("ys: {:?}", ys);
+
+    let vs = VarStore::new(device);
+    let path = vs.root();
+
+    let char_size = 256;
+    let hidden_size = 100;
+    let total_labels = 3; // negative, neutral, positive.
+    let batch_size = 128;
+
+    let lstm = nn::lstm(&path, char_size, hidden_size, Default::default());
+    let linear = nn::linear(&path, hidden_size, total_labels, Default::default());
+    let mut opt = nn::Adam::default().build(&vs, 0.01).unwrap();
+    loop {
+        let mut iter = Iter2::new(&xs, &ys, batch_size);
+        iter.shuffle().return_smaller_last_batch();
+        for (xs, ys) in iter {
+            let xs = xs.view([-1]).onehot(char_size).view([batch_size, -1, char_size]);
+            let ys = (ys / 2).onehot(total_labels).unsqueeze(1).repeat(&[1, xs.size()[1], 1]).argmax(2, false);
+
+            let (lstm_out, _) = lstm.seq(&xs);
+            let logits = linear.forward(&lstm_out).view([-1, total_labels]);
+            let loss = logits
+                .cross_entropy_for_logits(&ys.view([-1]));
+
+            println!("loss: {:?}", f64::try_from(&loss));
+
+            opt.backward_step_clip(&loss, 0.5);
+        }
+    }
 }
 
 fn load_dataset() -> (Tensor, Tensor) {
@@ -70,7 +99,7 @@ fn create_dataset() -> (Tensor, Tensor) {
         .map(|v| {
             let data = Tensor::from_slice(&v);
             let zeros = Tensor::zeros(&[(longest_text - v.len()) as i64], (data.kind(), data.device()));
-            Tensor::cat(&[zeros, data], 0)
+            Tensor::cat(&[zeros, data], 0).unsqueeze(0)
         })
         .collect();
 
